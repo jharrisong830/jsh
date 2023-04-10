@@ -12,10 +12,10 @@ CFLAGS = -c -g
 all: jshell clean
 
 jshell: jshell.o
-	$(CC) jshell.o -o ../jshell
+	$(CC) jshell.o -o jshell
 
-jshell.o: jshell.c
-	$(CC) $(CFLAGS) jshell.c
+jshell.o: src/jshell.c
+	$(CC) $(CFLAGS) src/jshell.c
 
 clean:
 	rm *.o
