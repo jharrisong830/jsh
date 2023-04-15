@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
+#include <linux/limits.h>
 #include <unistd.h>
 #include <errno.h>
 #include <pwd.h>
@@ -16,6 +16,8 @@
 #include <signal.h>
 #include <dirent.h>
 #include <sys/stat.h>
+
+#include "parse.h"
 
 
 /*defining ANSI color sequences*/
@@ -26,6 +28,7 @@
 #define DEFAULT "\x1b[0m"
 
 volatile int interrupt=0;
+char homedir[PATH_MAX];
 
 void sig_handler(int sig_num) { //signal handler, sets interrupt to true, prints newline
     interrupt=1;
@@ -85,14 +88,8 @@ int prompt() { //function that loops to
                 continue;
             }
             if(argc==1 || strcmp(parse_array[1], "~")==0) { //if no other arguments supplied, or given '~'...
-                uid_t user=getuid();
-                struct passwd* user_struct=getpwuid(user); //get current user
-                if(user_struct==NULL) {
-                    fprintf(stderr, "%sError: Cannot get passwd entry. %s.%s\n", RED, strerror(errno), DEFAULT);
-                    continue;
-                }
-                if(chdir(user_struct->pw_dir)!=0) { //change to the user's home directory
-                    fprintf(stderr, "%sError: Cannot change directory to %s. %s.%s\n", RED, user_struct->pw_dir, strerror(errno), DEFAULT);
+                if(chdir(homedir)!=0) { //change to the user's home directory
+                    fprintf(stderr, "%sError: Cannot change directory to %s. %s.%s\n", RED, homedir, strerror(errno), DEFAULT);
                     continue;
                 }
             }
@@ -131,17 +128,11 @@ int prompt() { //function that loops to
             else {
                 for(int i=1; i<argc; i++) {
                     if(strcmp(parse_array[i], "~")==0) { //if given '~'...
-                        uid_t user=getuid();
-                        struct passwd* user_struct=getpwuid(user); //get current user
-                        if(user_struct==NULL) {
-                            fprintf(stderr, "%sError: Cannot get passwd entry. %s.%s\n", RED, strerror(errno), DEFAULT);
+                        if(chdir(homedir)!=0) { //change to the user's home directory
+                            fprintf(stderr, "%sError: Cannot change directory to %s. %s.%s\n", RED, homedir, strerror(errno), DEFAULT);
                             continue;
                         }
-                        if(chdir(user_struct->pw_dir)!=0) { //change to the user's home directory
-                            fprintf(stderr, "%sError: Cannot change directory to %s. %s.%s\n", RED, user_struct->pw_dir, strerror(errno), DEFAULT);
-                            continue;
-                        }
-                        parse_array[i]=user_struct->pw_dir; //change '~' to the user's home directory path
+                        parse_array[i]=homedir; //change '~' to the user's home directory path
                     }
                     else { //otherwise, change to the directory supplied 
                         if(chdir(parse_array[i])!=0) {
@@ -238,6 +229,12 @@ int prompt() { //function that loops to
 
 
 int main() {
+    uid_t user=getuid();
+    struct passwd* user_struct=getpwuid(user); //get current user
+    if(user_struct==NULL) {
+        fprintf(stderr, "%sError: Cannot get passwd entry. %s.%s\n", RED, strerror(errno), DEFAULT);
+    }
+    strcpy(homedir, user_struct->pw_dir);
     prompt(); //start the shell loop
     return 0;
 }
