@@ -44,8 +44,8 @@ int prompt() { //function that loops to
     char x[PATH_MAX]; //for reading input
     char* cwd=getcwd(NULL, 0); //for printing cwd to the prompt
     char* old_cwd;
-    char* parser; //holds each token from strtok
     char* parse_array[PATH_MAX]; //string array to hold each all of the tokens together
+    int argc;
     pid_t pid; //holds the process ID number
 
     while(1) { //loop for the shell
@@ -53,29 +53,20 @@ int prompt() { //function that loops to
 
         /* RECEIVING INPUT */
         printf("%s[%s]%s> ", BLUE, cwd, DEFAULT); //prints the shell in blue
-        if(fgets(x, PATH_MAX, stdin)==NULL) { //read user input into x
-            if(interrupt) { //dom't print error if interrupted by SIGINT
+        int parse_status=get_tokens(parse_array, &argc);
+        if(parse_status==1) { //some error with fgets(), handle accordingly
+            if(interrupt) { //don't print error if interrupted by SIGINT
                 interrupt=0;
+                printf("TRIGGERED\n");
             }
             else {
                 fprintf(stderr, "%sError: Failed to read from stdin. %s.%s\n", RED, strerror(errno), DEFAULT);
             }
             continue;
         }
-
-        /* PARSING INPUT */
-        x[strcspn(x, "\n")]='\0'; //replace newline with null terminator
-        int argc=0;
-        parser=strtok(x, " "); //begin reading tokens, separating by space
-        if(parser==NULL) {
-            continue; //continue if no input supplied
+        else if(parse_status==2) { //no input (just whitespace), continue
+            continue;
         }
-        while(parser!=NULL) { //while there are still tokens to be read...
-            parse_array[argc]=parser; //add parsed result to the string array
-            argc++; //increment argc
-            parser=strtok(NULL, " "); //read the next token
-        }
-        parse_array[argc]=NULL; //add a null entry after the last token
 
         /* COMMANDS */
         if(strcmp(parse_array[0], "exit")==0) { //exit command
@@ -83,27 +74,28 @@ int prompt() { //function that loops to
             exit(EXIT_SUCCESS); //exit the loop and end the program
         }
         else if(strcmp(parse_array[0], "cd")==0) { //cd command
-            if(argc>2) { //error if too many arguments
-                fprintf(stderr, "%sError: Too many arguments to cd.%s\n", RED, DEFAULT);
-                continue;
-            }
             if(argc==1 || strcmp(parse_array[1], "~")==0) { //if no other arguments supplied, or given '~'...
                 if(chdir(homedir)!=0) { //change to the user's home directory
-                    fprintf(stderr, "%sError: Cannot change directory to %s. %s.%s\n", RED, homedir, strerror(errno), DEFAULT);
+                    fprintf(stderr, "%sError: Cannot change directory to \"%s\". %s.%s\n", RED, homedir, strerror(errno), DEFAULT);
                     continue;
                 }
             }
-            else if(chdir(parse_array[1])!=0) { //change to the specified directory
-                fprintf(stderr, "%sError: Cannot change directory to %s. %s.%s\n", RED, parse_array[1], strerror(errno), DEFAULT);
-                continue;
+            else {
+                char* targetpath=parse_cd(argc, parse_array, homedir); //resolve '~' and spacing issues
+                if(chdir(targetpath)!=0) { //change to desired path
+                    fprintf(stderr, "%sError: Cannot change directory to \"%s\". %s.%s\n", RED, targetpath, strerror(errno), DEFAULT);
+                    free(targetpath);
+                    continue;
+                }
+                free(targetpath);
             }
-            free(cwd); //free the old directory...
+            free(cwd); //free the old cwd...
             if((cwd=getcwd(NULL, 0)) == NULL) { //...and set the new one
                 fprintf(stderr, "%sError: Cannot get current working directory. %s.%s\n", RED, strerror(errno), DEFAULT);
                 continue;
             }
         }
-        else if(strcmp(parse_array[0], "ls")==0) { //EXTRA CREDIT -> colorized ls
+        else if(strcmp(parse_array[0], "ls")==0) { //colorized ls command
             if(argc==1) { //if no other arguments supplied, print contents of current directory
                 DIR* directory;
                 if((directory=opendir(cwd)) == NULL) { //open directory
@@ -228,7 +220,7 @@ int prompt() { //function that loops to
 
 
 
-int main() {
+int main(int argc, char** argv) {
     uid_t user=getuid();
     struct passwd* user_struct=getpwuid(user); //get current user
     if(user_struct==NULL) {
