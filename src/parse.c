@@ -11,8 +11,8 @@
  * Reads from stdin and processes input into a supplied string array.
  * RETURN:
  *         0 ->     no errors
- *         1 ->     fgets error (most likely SIGINT during prompt, needs to be handled in jshell.c)
- *         2 ->     strtok immediately returns null, continue in jshell.c
+ *         1 ->     fgets error (most likely SIGINT during prompt, needs to be handled in jsh.c)
+ *         2 ->     strtok immediately returns null, continue in jsh.c
  * MODIFIES: 
  *         char** string_array ->   places tokens within this array
  *         int* argc           ->   modifies the value of argc according to how many arguments are read in
@@ -23,7 +23,7 @@ int get_tokens(char** string_array, int* argc) {
     *argc=0;
 
     if(fgets(input, PATH_MAX, stdin)==NULL) { //read user input into x
-        return 1; //return 1 to handle errors in jshell.c
+        return 1; //return 1 to handle errors in jsh.c
     }
 
     input[strcspn(input, "\n")]='\0'; //replace newline with null terminator

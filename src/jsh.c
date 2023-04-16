@@ -1,7 +1,7 @@
 /**
  * AUTHOR:  John Graham
  * 
- * FILE:    jshell.c
+ * FILE:    jsh.c
 */
 
 #include <stdio.h>

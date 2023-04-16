@@ -9,13 +9,13 @@ CC = gcc
 CFLAGS = -c -g
 
 
-all: jshell clean
+all: jsh clean
 
-jshell: jshell.o parse.o directory.o
-	$(CC) jshell.o parse.o directory.o -o jshell
+jsh: jsh.o parse.o directory.o
+	$(CC) jsh.o parse.o directory.o -o jsh
 
-jshell.o: src/jshell.c
-	$(CC) $(CFLAGS) src/jshell.c
+jsh.o: src/jsh.c
+	$(CC) $(CFLAGS) src/jsh.c
 
 parse.o: src/parse.c
 	$(CC) $(CFLAGS) src/parse.c
