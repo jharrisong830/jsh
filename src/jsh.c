@@ -22,6 +22,8 @@
 
 volatile int interrupt=0;
 char homedir[PATH_MAX];
+char username[PATH_MAX];
+char host[PATH_MAX];
 
 void sig_handler(int sig_num) { //signal handler, sets interrupt to true, prints newline
     interrupt=1;
@@ -44,8 +46,12 @@ int prompt() { //function that loops to
     while(1) { //loop for the shell
         interrupt=0; //reset interrupt to false
 
-        /* RECEIVING INPUT */
-        printf("%s[%s]%s> ", BLUE, cwd, DEFAULT); //prints the shell in blue
+        if(strncmp(homedir, cwd, strlen(homedir)) == 0) {
+            printf("%s%s@%s%s : %s~%s%s$ ", GREEN, username, host, DEFAULT, BLUE, cwd+strlen(homedir), DEFAULT); //prints shell with '~'
+        }
+        else {
+            printf("%s%s@%s%s : %s%s%s$ ", GREEN, username, host, DEFAULT, BLUE, cwd, DEFAULT); //prints the shel normally
+        }
         int parse_status=get_tokens(parse_array, &argc);
         if(parse_status==1) { //some error with fgets(), handle accordingly
             if(interrupt) { //don't print error if interrupted by SIGINT
@@ -189,6 +195,8 @@ int main(int argc, char** argv) {
         fprintf(stderr, "%sError: Cannot get passwd entry. %s.%s\n", RED, strerror(errno), DEFAULT);
     }
     strcpy(homedir, user_struct->pw_dir);
+    strcpy(username, user_struct->pw_name);
+    gethostname(host, PATH_MAX);
     prompt(); //start the shell loop
     return 0;
 }
