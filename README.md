@@ -1,12 +1,8 @@
 # jsh - a small custom shell written in C
 
-### Executable Download: [jsh](https://github.com/jharrisong830/jshell/raw/main/jsh)
-
-***
-
 ## Setup Guide
 
-1. Download the [executable](https://github.com/jharrisong830/jshell/raw/main/jsh), **or** clone this repository and `make` from the source code
+1. Download the latest release, **or** clone this repository and `make` from the source code
 2. Execute from your current working directory (with `./jsh`), or move the executable to a PATH folder to start from anywhere on your system (with `jsh`)
 
 ## Features
