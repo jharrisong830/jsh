@@ -14,18 +14,11 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <dirent.h>
-#include <sys/stat.h>
 
 #include "parse.h"
+#include "directory.h"
+#include "color.h"
 
-
-/*defining ANSI color sequences*/
-#define BLUE    "\x1b[34;1m"
-#define RED     "\x1b[31;1m"
-#define GREEN   "\x1b[32;1m"
-#define B_GREEN "\x1b[42;1m"
-#define DEFAULT "\x1b[0m"
 
 volatile int interrupt=0;
 char homedir[PATH_MAX];
@@ -57,7 +50,6 @@ int prompt() { //function that loops to
         if(parse_status==1) { //some error with fgets(), handle accordingly
             if(interrupt) { //don't print error if interrupted by SIGINT
                 interrupt=0;
-                printf("TRIGGERED\n");
             }
             else {
                 fprintf(stderr, "%sError: Failed to read from stdin. %s.%s\n", RED, strerror(errno), DEFAULT);
@@ -97,25 +89,10 @@ int prompt() { //function that loops to
         }
         else if(strcmp(parse_array[0], "ls")==0) { //colorized ls command
             if(argc==1) { //if no other arguments supplied, print contents of current directory
-                DIR* directory;
-                if((directory=opendir(cwd)) == NULL) { //open directory
+                if(list_dir(cwd)==-1) {
                     fprintf(stderr, "%sError: opendir() failed. %s.%s\n", RED, strerror(errno), DEFAULT);
                     continue;
                 }
-                struct dirent* curr_ent;
-                struct stat curr_stat;
-                while((curr_ent=readdir(directory)) != NULL) { //read from each entry
-                    if(curr_ent->d_name[0]!='.') { //skip all hidden entries
-                        stat(curr_ent->d_name, &curr_stat);
-                        if(S_ISDIR(curr_stat.st_mode)) { //if directory, print in green
-                            fprintf(stdout, "%s%s%s\n", GREEN, curr_ent->d_name, DEFAULT);
-                        }
-                        else { //otherwise, print in default color
-                            fprintf(stdout, "%s\n", curr_ent->d_name);
-                        }
-                    }
-                }
-                free(directory);
             }
             else {
                 for(int i=1; i<argc; i++) {
@@ -145,8 +122,7 @@ int prompt() { //function that loops to
                     if(argc>2) { //if printing more than one directory, print the current directory's name
                         fprintf(stdout, "%s%s%s:\n", B_GREEN, cwd, DEFAULT);
                     }
-                    DIR* directory;
-                    if((directory=opendir(cwd)) == NULL) { //open directory
+                    if(list_dir(cwd)==-1) { //open directory
                         fprintf(stderr, "%sError: opendir() failed. %s.%s\n", RED, strerror(errno), DEFAULT);
                         if(chdir(old_cwd)!=0) { //change back to cwd
                             fprintf(stderr, "%sError: Cannot change directory to %s. %s.%s\n", RED, cwd, strerror(errno), DEFAULT);
@@ -160,20 +136,6 @@ int prompt() { //function that loops to
                         }
                         continue;
                     }
-                    struct dirent* curr_ent;
-                    struct stat curr_stat;
-                    while((curr_ent=readdir(directory)) != NULL) { //read from each entry
-                        if(curr_ent->d_name[0]!='.') { //skip all hidden entries
-                            stat(curr_ent->d_name, &curr_stat);
-                            if(S_ISDIR(curr_stat.st_mode)) { //if directory, print in green
-                                fprintf(stdout, "%s%s%s\n", GREEN, curr_ent->d_name, DEFAULT);
-                            }
-                            else { //otherwise, print in default color
-                                fprintf(stdout, "%s\n", curr_ent->d_name);
-                            }
-                        }
-                    }
-                    free(directory);
                     if(chdir(old_cwd)!=0) { //change back to cwd
                         fprintf(stderr, "%sError: Cannot change directory to %s. %s.%s\n", RED, cwd, strerror(errno), DEFAULT);
                         continue;
