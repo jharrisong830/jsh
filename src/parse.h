@@ -9,9 +9,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <linux/limits.h>
+#ifdef __linux__
+    #include <linux/limits.h>
+#else
+    #include <limits.h>
+#endif
 
 
 char* parse_cd(int, char**, const char*);
 
-int get_tokens(char**, int*);
+int get_tokens(char*, char**, int*);

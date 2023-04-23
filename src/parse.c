@@ -17,8 +17,7 @@
  *         char** string_array ->   places tokens within this array
  *         int* argc           ->   modifies the value of argc according to how many arguments are read in
 */
-int get_tokens(char** string_array, int* argc) {
-    char input[PATH_MAX];
+int get_tokens(char* input, char** string_array, int* argc) {
     char* token;
     *argc=0;
 

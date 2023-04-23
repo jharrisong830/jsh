@@ -7,7 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <linux/limits.h>
+#ifdef __linux__
+    #include <linux/limits.h>
+#else
+    #include <limits.h>
+#endif
 #include <unistd.h>
 #include <errno.h>
 #include <pwd.h>
@@ -40,19 +44,28 @@ int prompt() { //function that loops to
     char* cwd=getcwd(NULL, 0); //for printing cwd to the prompt
     char* old_cwd;
     char* parse_array[PATH_MAX]; //string array to hold each all of the tokens together
+    char* input; //holds the input from fgets()
     int argc;
     pid_t pid; //holds the process ID number
+    int stat=0; //holds the status of the child process
+    char* stat_color;
 
     while(1) { //loop for the shell
-        interrupt=0; //reset interrupt to false
-
-        if(strncmp(homedir, cwd, strlen(homedir)) == 0) {
-            printf("%s%s@%s%s : %s~%s%s$ ", GREEN, username, host, DEFAULT, BLUE, cwd+strlen(homedir), DEFAULT); //prints shell with '~'
+        if(stat!=0 || interrupt) {
+            stat_color=RED;
+            stat=0;
         }
         else {
-            printf("%s%s@%s%s : %s%s%s$ ", GREEN, username, host, DEFAULT, BLUE, cwd, DEFAULT); //prints the shel normally
+            stat_color=GREEN;
         }
-        int parse_status=get_tokens(parse_array, &argc);
+        interrupt=0; //reset interrupt to false
+        if(strncmp(homedir, cwd, strlen(homedir)) == 0) {
+            printf("%s%s@%s%s : %s~%s%s$ ", stat_color, username, host, DEFAULT, BLUE, cwd+strlen(homedir), DEFAULT); //prints shell with '~'
+        }
+        else {
+            printf("%s%s@%s%s : %s%s%s$ ", stat_color, username, host, DEFAULT, BLUE, cwd, DEFAULT); //prints the shell normally
+        }
+        int parse_status=get_tokens(input, parse_array, &argc);
         if(parse_status==1) { //some error with fgets(), handle accordingly
             if(interrupt) { //don't print error if interrupted by SIGINT
                 interrupt=0;
@@ -159,8 +172,7 @@ int prompt() { //function that loops to
             }
         }
         else { //all other commands
-            int stat;
-            pid=fork(); //fork the programo
+            pid=fork(); //fork the program
             if(pid==-1) {
                 fprintf(stderr, "%sError: fork() failed. %s.%s\n", RED, strerror(errno), DEFAULT);
                 continue;
